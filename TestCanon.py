@@ -7,6 +7,8 @@ import os
 
 class PhotoBooth:
     def __init__(self, root):
+        subprocess.run(["killall", "gvfsd-gphoto2"], stderr=subprocess.DEVNULL)
+        subprocess.run(["killall", "gvfs-gphoto2-volume-monitor"], stderr=subprocess.DEVNULL)
         self.root = root
         self.root.title("Photobooth Canon EOS 2000D")
         self.root.geometry("400x200")
