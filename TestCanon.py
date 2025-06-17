@@ -49,11 +49,18 @@ class PhotoBooth:
 
             try:
                 filename = f"photo_{int(time.time())}.jpg"
-                subprocess.run(["gphoto2", "--capture-image-and-download", f"--filename={filename}"], check=True)
+                result = subprocess.run(
+                    ["gphoto2", "--capture-image-and-download", f"--filename={filename}"],
+                    check=True,
+                    capture_output=True,
+                    text=True
+                )
                 messagebox.showinfo("Photo prise", f"Image sauvegardée : {filename}")
                 os.system(f"xdg-open {filename}")
-            except subprocess.CalledProcessError:
-                messagebox.showerror("Erreur", "Erreur lors de la capture.")
+            except subprocess.CalledProcessError as e:
+                error_msg = f"Erreur lors de la capture:\n{e.stderr}"
+                print(error_msg)
+                messagebox.showerror("Erreur", error_msg)
             finally:
                 time.sleep(1)
                 self.start_live()
