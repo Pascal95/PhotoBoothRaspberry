@@ -8,20 +8,22 @@ preview_process = None
 
 def start_preview():
     global preview_process
-    stop_preview()  # on arrête si déjà lancé
-    preview_process = subprocess.Popen(
-        ["gphoto2", "--capture-movie", "--stdout"],
-        stdout=subprocess.DEVNULL,  # pas affiché pour l'instant
-        stderr=subprocess.DEVNULL
-    )
-    print("Live démarré")
+    stop_preview()
+    preview_process = subprocess.Popen([
+        "gphoto2", "--capture-movie", "--stdout"
+    ], stdout=subprocess.PIPE)
+
+    mplayer_process = subprocess.Popen([
+        "mplayer", "-"
+    ], stdin=preview_process.stdout, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    preview_process.mplayer = mplayer_process
 
 def stop_preview():
     global preview_process
-    if preview_process and preview_process.poll() is None:
-        preview_process.terminate()
-        preview_process.wait()
-        print("Live arrêté")
+    if hasattr(preview_process, 'mplayer'):
+        preview_process.mplayer.terminate()
+        preview_process.mplayer.wait()
 
 def take_photo():
     stop_preview()
