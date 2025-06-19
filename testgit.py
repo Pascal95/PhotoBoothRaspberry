@@ -1,55 +1,53 @@
+import cv2
 import tkinter as tk
-from tkinter import messagebox
-import subprocess
-import threading
-import os
+from PIL import Image, ImageTk
+import time
 
-preview_process = None
+class PhotoBoothApp:
+    def __init__(self, window):
+        self.window = window
+        self.window.title("Photobooth")
+        self.window.geometry("800x600")
 
-def start_preview():
-    global preview_process
-    stop_preview()
-    preview_process = subprocess.Popen([
-        "gphoto2", "--capture-movie", "--stdout"
-    ], stdout=subprocess.PIPE)
+        self.video_source = 0  # L'index de la webcam USB HDMI (parfois 1 si autre webcam active)
+        self.vid = cv2.VideoCapture(self.video_source)
 
-    mplayer_process = subprocess.Popen([
-        "mplayer", "-"
-    ], stdin=preview_process.stdout, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        self.label = tk.Label(window)
+        self.label.pack()
 
-    preview_process.mplayer = mplayer_process
+        self.capture_btn = tk.Button(window, text="📸 Prendre une photo", command=self.take_snapshot)
+        self.capture_btn.pack(pady=10)
 
-def stop_preview():
-    global preview_process
-    if hasattr(preview_process, 'mplayer'):
-        preview_process.mplayer.terminate()
-        preview_process.mplayer.wait()
+        self.update()
 
-def take_photo():
-    stop_preview()
-    try:
-        filename = "capture.jpg"
-        subprocess.run([
-            "gphoto2", "--capture-image-and-download",
-            "--filename", filename
-        ], check=True)
-        messagebox.showinfo("Photo prise", f"Photo enregistrée : {filename}")
-    except subprocess.CalledProcessError as e:
-        messagebox.showerror("Erreur", "Échec de la capture photo.")
-        print(e)
-    start_preview()
+        self.window.protocol("WM_DELETE_WINDOW", self.on_close)
 
-def start_gui():
-    root = tk.Tk()
-    root.title("Photobooth")
-    root.geometry("400x200")
+    def update(self):
+        ret, frame = self.vid.read()
+        if ret:
+            # Convertir l'image au format compatible tkinter
+            cv2image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            img = Image.fromarray(cv2image)
+            imgtk = ImageTk.PhotoImage(image=img)
 
-    tk.Label(root, text="Appuyez pour prendre une photo").pack(pady=20)
-    tk.Button(root, text="📸 Prendre une photo", command=take_photo).pack(pady=10)
+            self.label.imgtk = imgtk
+            self.label.configure(image=imgtk)
 
-    start_preview()
-    root.protocol("WM_DELETE_WINDOW", lambda: (stop_preview(), root.destroy()))
-    root.mainloop()
+        self.window.after(10, self.update)
+
+    def take_snapshot(self):
+        ret, frame = self.vid.read()
+        if ret:
+            timestamp = time.strftime("%Y%m%d-%H%M%S")
+            filename = f"photo_{timestamp}.jpg"
+            cv2.imwrite(filename, frame)
+            print(f"✅ Photo enregistrée : {filename}")
+
+    def on_close(self):
+        self.vid.release()
+        self.window.destroy()
 
 if __name__ == "__main__":
-    start_gui()
+    root = tk.Tk()
+    app = PhotoBoothApp(root)
+    root.mainloop()
