@@ -1,53 +1,51 @@
 import cv2
-import tkinter as tk
+import subprocess
+from tkinter import Tk, Button, Label
 from PIL import Image, ImageTk
-import time
 
-class PhotoBoothApp:
-    def __init__(self, window):
-        self.window = window
-        self.window.title("Photobooth")
-        self.window.geometry("800x600")
+# Initialisation interface
+root = Tk()
+root.title("Photobooth")
+root.geometry("800x600")
 
-        self.video_source = 0  # L'index de la webcam USB HDMI (parfois 1 si autre webcam active)
-        self.vid = cv2.VideoCapture(self.video_source)
+# Ouverture de la carte de capture HDMI (devrait être /dev/video0 ou index 0)
+cap = cv2.VideoCapture(0)
 
-        self.label = tk.Label(window)
-        self.label.pack()
+if not cap.isOpened():
+    raise RuntimeError("Impossible d'accéder au flux HDMI (webcam)")
 
-        self.capture_btn = tk.Button(window, text="📸 Prendre une photo", command=self.take_snapshot)
-        self.capture_btn.pack(pady=10)
+# Label pour afficher la vidéo
+video_label = Label(root)
+video_label.pack()
 
-        self.update()
+def show_frame():
+    ret, frame = cap.read()
+    if ret:
+        # Conversion pour Tkinter
+        cv2image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        img = Image.fromarray(cv2image)
+        imgtk = ImageTk.PhotoImage(image=img)
+        video_label.imgtk = imgtk
+        video_label.configure(image=imgtk)
+    video_label.after(10, show_frame)
 
-        self.window.protocol("WM_DELETE_WINDOW", self.on_close)
+def take_photo():
+    try:
+        filename = "photo_capture.jpg"
+        subprocess.run([
+            "gphoto2", "--capture-image-and-download", "--filename", filename
+        ], check=True)
+        print(f"Photo enregistrée : {filename}")
+    except subprocess.CalledProcessError as e:
+        print("Erreur lors de la capture :", e)
 
-    def update(self):
-        ret, frame = self.vid.read()
-        if ret:
-            # Convertir l'image au format compatible tkinter
-            cv2image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            img = Image.fromarray(cv2image)
-            imgtk = ImageTk.PhotoImage(image=img)
+# Bouton photo
+btn = Button(root, text="📸 Prendre une photo", command=take_photo)
+btn.pack(pady=20)
 
-            self.label.imgtk = imgtk
-            self.label.configure(image=imgtk)
+# Lancer la vidéo
+show_frame()
+root.mainloop()
 
-        self.window.after(10, self.update)
-
-    def take_snapshot(self):
-        ret, frame = self.vid.read()
-        if ret:
-            timestamp = time.strftime("%Y%m%d-%H%M%S")
-            filename = f"photo_{timestamp}.jpg"
-            cv2.imwrite(filename, frame)
-            print(f"✅ Photo enregistrée : {filename}")
-
-    def on_close(self):
-        self.vid.release()
-        self.window.destroy()
-
-if __name__ == "__main__":
-    root = tk.Tk()
-    app = PhotoBoothApp(root)
-    root.mainloop()
+# Libérer la ressource vidéo à la fin
+cap.release()
