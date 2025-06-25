@@ -26,5 +26,20 @@ def update_frame():
     video_label.after(10, update_frame)
 
 update_frame()
+
+import time
+from tkinter import Button
+
+def prendre_photo():
+    ret, frame = cap.read()
+    if ret:
+        timestamp = time.strftime("%Y%m%d-%H%M%S")
+        filename = f"photo_{timestamp}.jpg"
+        cv2.imwrite(filename, frame)
+        print(f"Photo enregistrée : {filename}")
+
+bouton_photo = Button(root, text="Prendre une photo", command=prendre_photo)
+bouton_photo.pack(pady=10)
+
 root.mainloop()
 cap.release()
