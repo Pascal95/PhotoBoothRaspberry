@@ -1,6 +1,9 @@
 import cv2
 from tkinter import Tk, Label
 from PIL import Image, ImageTk
+import time
+from tkinter import Button
+import subprocess
 
 # Choix de la source vidéo (0 ou 1 selon la carte de capture)
 cap = cv2.VideoCapture(0)
@@ -27,16 +30,14 @@ def update_frame():
 
 update_frame()
 
-import time
-from tkinter import Button
-
 def prendre_photo():
-    ret, frame = cap.read()
-    if ret:
-        timestamp = time.strftime("%Y%m%d-%H%M%S")
-        filename = f"photo_{timestamp}.jpg"
-        cv2.imwrite(filename, frame)
+    timestamp = time.strftime("%Y%m%d-%H%M%S")
+    filename = f"photo_{timestamp}.jpg"
+    try:
+        subprocess.run(["gphoto2", "--capture-image-and-download", f"--filename={filename}"], check=True)
         print(f"Photo enregistrée : {filename}")
+    except subprocess.CalledProcessError as e:
+        print(f"Erreur lors de la capture : {e}")
 
 bouton_photo = Button(root, text="Prendre une photo", command=prendre_photo)
 bouton_photo.pack(pady=10)
