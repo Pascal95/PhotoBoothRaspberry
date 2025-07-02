@@ -34,9 +34,14 @@ def prendre_photo():
     timestamp = time.strftime("%Y%m%d-%H%M%S")
     filename = f"photo_{timestamp}.jpg"
     try:
-        # Unmount any previously mounted Canon camera volume (prevent gvfs from blocking the USB)
-        subprocess.run(["gio", "mount", "-u", "gphoto2://[usb:004,035]/"], stderr=subprocess.DEVNULL)
+        # Démontage automatique du volume gphoto2
+        subprocess.run([
+            "gio", "mount", "-u", "gphoto2://Canon_Inc._Canon_Digital_Camera/"
+        ], stderr=subprocess.DEVNULL)
 
+        time.sleep(1)  # petite pause pour libérer l’USB
+
+        # Capture réelle
         subprocess.run([
             "gphoto2",
             "--capture-image-and-download",
@@ -45,12 +50,11 @@ def prendre_photo():
             "--force-overwrite"
         ], check=True)
 
-        # Also unmount standard mount point if exists
-        subprocess.run(["gio", "mount", "-u", "/media/pi/CANON_DC"], stderr=subprocess.DEVNULL)
+        print(f"✅ Photo enregistrée : {filename}")
+        time.sleep(2)
 
-        print(f"Photo enregistrée : {filename}")
     except subprocess.CalledProcessError as e:
-        print(f"Erreur lors de la capture : {e}")
+        print(f"❌ Erreur lors de la capture : {e}")
 
 bouton_photo = Button(root, text="Prendre une photo", command=prendre_photo)
 bouton_photo.pack(pady=10)
