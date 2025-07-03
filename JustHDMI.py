@@ -31,30 +31,39 @@ def update_frame():
 update_frame()
 
 def prendre_photo():
-    timestamp = time.strftime("%Y%m%d-%H%M%S")
-    filename = f"photo_{timestamp}.jpg"
-    try:
-        # Démontage automatique du volume gphoto2
-        subprocess.run([
-            "gio", "mount", "-u", "gphoto2://Canon_Inc._Canon_Digital_Camera/"
-        ], stderr=subprocess.DEVNULL)
+    success = False
+    attempts = 0
+    max_attempts = 3
 
-        time.sleep(1)  # petite pause pour libérer l’USB
+    while not success and attempts < max_attempts:
+        timestamp = time.strftime("%Y%m%d-%H%M%S")
+        filename = f"photo_{timestamp}.jpg"
+        try:
+            # Démontage automatique du volume gphoto2
+            subprocess.run([
+                "gio", "mount", "-u", "gphoto2://Canon_Inc._Canon_Digital_Camera/"
+            ], stderr=subprocess.DEVNULL)
 
-        # Capture réelle
-        subprocess.run([
-            "gphoto2",
-            "--capture-image-and-download",
-            f"--filename={filename}",
-            "--keep",
-            "--force-overwrite"
-        ], check=True)
+            time.sleep(1)  # pause pour libérer l’USB
 
-        print(f"✅ Photo enregistrée : {filename}")
-        time.sleep(2)
+            # Capture réelle
+            subprocess.run([
+                "gphoto2",
+                "--capture-image-and-download",
+                f"--filename={filename}",
+                "--keep",
+                "--force-overwrite"
+            ], check=True)
 
-    except subprocess.CalledProcessError as e:
-        print(f"❌ Erreur lors de la capture : {e}")
+            print(f"✅ Photo enregistrée : {filename}")
+            success = True
+        except subprocess.CalledProcessError as e:
+            print(f"⚠️ Tentative {attempts+1} échouée : {e}")
+            time.sleep(2)
+            attempts += 1
+
+    if not success:
+        print("❌ Échec de la prise de photo après plusieurs tentatives.")
 
 bouton_photo = Button(root, text="Prendre une photo", command=prendre_photo)
 bouton_photo.pack(pady=10)
