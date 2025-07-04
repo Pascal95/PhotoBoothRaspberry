@@ -41,11 +41,15 @@ class PhotoBoothApp:
 
     def capture_photo(self):
         # Étape 1 : Unmount automatique (à adapter selon le nom de ton volume)
-        try:
-            subprocess.run(["gio", "mount", "-u", "gphoto2://Canon_Inc._Canon_Digital_Camera/"], check=True)
+        unmount_result = subprocess.run(
+            ["gio", "mount", "-u", "gphoto2://Canon_Inc._Canon_Digital_Camera/"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
+        if unmount_result.returncode == 0:
             print("✅ Volume démonté avec succès.")
-        except subprocess.CalledProcessError as e:
-            print(f"⚠️ Impossible de démonter le volume (peut-être déjà démonté) : {e}")
+        else:
+            print("⚠️ Volume non démonté (peut-être déjà démonté ou introuvable), on continue quand même.")
 
         # Étape 2 : Prendre la photo
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
