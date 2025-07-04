@@ -52,10 +52,24 @@ class PhotoBoothApp:
             print("⚠️ Volume non démonté (peut-être déjà démonté ou introuvable), on continue quand même.")
 
         # Étape 2 : Prendre la photo
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"photo_{timestamp}.jpg"
         try:
-            subprocess.run(["gphoto2", "--capture-image-and-download", "--filename", filename], check=True)
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"photo_{timestamp}.jpg"
+
+            subprocess.run([
+                "gphoto2",
+                "--set-config", "output=Off",
+                "--set-config", "capturetarget=1",
+                "--trigger-capture"
+            ], check=True)
+
+            # Attente explicite de l'événement d'ajout de fichier, puis téléchargement
+            subprocess.run([
+                "gphoto2",
+                "--wait-event-and-download=FILEADDED",
+                "--filename", filename
+            ], check=True)
+
             print(f"✅ Photo capturée : {filename}")
         except subprocess.CalledProcessError as e:
             print(f"❌ Erreur lors de la capture : {e}")
