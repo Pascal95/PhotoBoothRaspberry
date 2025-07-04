@@ -20,23 +20,24 @@ class PhotoBoothApp:
         self.capture_button.pack(pady=10)
 
         self.running = True
-        self.video_thread = threading.Thread(target=self.video_loop)
-        self.video_thread.start()
+        self.start_video_loop()
 
-    def video_loop(self):
-        cap = cv2.VideoCapture(0)  # Logitech C920 généralement détectée à l'index 0
-        while self.running:
-            ret, frame = cap.read()
-            if ret:
-                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                img = Image.fromarray(frame)
-                imgtk = ImageTk.PhotoImage(image=img)
-                self.video_label.imgtk = imgtk
-                self.video_label.configure(image=imgtk)
-            else:
-                print("Erreur lors de la lecture de la webcam.")
-            time.sleep(0.03)
-        cap.release()
+    def start_video_loop(self):
+        self.cap = cv2.VideoCapture(0)
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+        self.update_frame()
+
+    def update_frame(self):
+        ret, frame = self.cap.read()
+        if ret:
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            img = Image.fromarray(frame)
+            imgtk = ImageTk.PhotoImage(image=img)
+            self.video_label.imgtk = imgtk
+            self.video_label.configure(image=imgtk)
+        if self.running:
+            self.window.after(10, self.update_frame)
 
     def capture_photo(self):
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -49,6 +50,8 @@ class PhotoBoothApp:
 
     def on_close(self):
         self.running = False
+        if hasattr(self, 'cap') and self.cap.isOpened():
+            self.cap.release()
         self.window.destroy()
 
 if __name__ == "__main__":
